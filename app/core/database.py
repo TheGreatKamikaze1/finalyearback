@@ -7,7 +7,7 @@ def normalize_database_url(url: str) -> str:
         return url.replace("postgres://", "postgresql://", 1)
     return url
 
-database_url = normalize_database_url(settings.DATABASE_URL)
+database_url = normalize_database_url(settings.database_url)
 
 engine = create_engine(
     database_url,

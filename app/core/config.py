@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
@@ -12,7 +13,14 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = False
 
-    DATABASE_URL: str
+    DATABASE_URL: str | None = None
+    DATABASE_PUBLIC_URL: str | None = None
+    POSTGRES_URL: str | None = None
+    PGHOST: str | None = None
+    PGPORT: int = 5432
+    PGDATABASE: str | None = None
+    PGUSER: str | None = None
+    PGPASSWORD: str | None = None
 
     JWT_SECRET: str = Field(..., min_length=16)
     JWT_ALG: str = "HS256"
@@ -20,5 +28,23 @@ class Settings(BaseSettings):
     AUTO_CREATE_TABLES: bool = True
 
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500,null"
+
+    @property
+    def database_url(self) -> str:
+        url = self.DATABASE_URL or self.DATABASE_PUBLIC_URL or self.POSTGRES_URL
+        if url:
+            return url
+
+        if all([self.PGHOST, self.PGDATABASE, self.PGUSER, self.PGPASSWORD]):
+            user = quote_plus(self.PGUSER or "")
+            password = quote_plus(self.PGPASSWORD or "")
+            host = self.PGHOST
+            database = quote_plus(self.PGDATABASE or "")
+            return f"postgresql://{user}:{password}@{host}:{self.PGPORT}/{database}"
+
+        raise RuntimeError(
+            "Missing database configuration. Set DATABASE_URL on this service, "
+            "or provide PGHOST, PGPORT, PGDATABASE, PGUSER, and PGPASSWORD."
+        )
 
 settings = Settings()
